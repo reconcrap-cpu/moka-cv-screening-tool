@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moka扩展模块测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #4CAF50;
+            margin-top: 0;
+        }
+        .test-result {
+            font-family: monospace;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .pass { color: #4CAF50; }
+        .fail { color: #f44336; }
+        .warning { color: #ff9800; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .log-area {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+        }
+        .log-info { color: #569cd6; }
+        .log-success { color: #4ec9b0; }
+        .log-warning { color: #dcdcaa; }
+        .log-error { color: #f14c4c; }
+    </style>
+</head>
+<body>
+    <h1>Moka扩展模块测试页面</h1>
+    
+    <div class="test-section">
+        <h2>测试说明</h2>
+        <p>此页面用于测试Moka扩展的各个模块功能。点击下方按钮加载模块并执行测试。</p>
+        <p><strong>测试顺序：</strong></p>
+        <ol>
+            <li>点击"加载所有模块"按钮</li>
+            <li>点击"运行第一阶段测试"按钮</li>
+            <li>查看测试结果</li>
+        </ol>
+        <button onclick="loadModules()">加载所有模块</button>
+        <button onclick="runPhase1Tests()" id="runTestsBtn" disabled>运行第一阶段测试</button>
+        <button onclick="clearLog()">清空日志</button>
+    </div>
+
+    <div class="test-section">
+        <h2>测试结果</h2>
+        <div id="testResults" class="test-result">等待测试...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>详细日志</h2>
+        <div id="logArea" class="log-area"></div>
+    </div>
+
+    <!-- 加载模块脚本 -->
+    <script src="src/constants/Selectors.js"></script>
+    <script src="src/utils/SelectorMonitor.js"></script>
+    <script src="src/utils/DOMUtils.js"></script>
+    <script src="src/utils/Logger.js"></script>
+    <script src="src/utils/StorageUtils.js"></script>
+    <script src="src/modules/CandidateListModule.js"></script>
+    <script src="src/modules/ResumeDetailModule.js"></script>
+    <script src="src/modules/ResumeImageModule.js"></script>
+    <script src="src/modules/RecommendationModule.js"></script>
+
+    <script>
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            warnings: 0
+        };
+
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = 'log-' + type;
+            logArea.innerHTML += '<span class="' + colorClass + '">[' + timestamp + '] ' + message + '</span>\n';
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+            document.getElementById('testResults').innerHTML = '等待测试...';
+            testResults = { total: 0, passed: 0, failed: 0, warnings: 0 };
+        }
+
+        function updateResults() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = 
+'测试总数: ' + testResults.total + '\n' +
+'通过: ' + testResults.passed + '\n' +
+'失败: ' + testResults.failed + '\n' +
+'警告: ' + testResults.warnings + '\n' +
+'通过率: ' + (testResults.total > 0 ? Math.round(testResults.passed / testResults.total * 100) : 0) + '%';
+        }
+
+        function assert(condition, passMsg, failMsg) {
+            testResults.total++;
+            if (condition) {
+                testResults.passed++;
+                log('PASS ' + passMsg, 'success');
+                return true;
+            } else {
+                testResults.failed++;
+                log('FAIL ' + failMsg, 'error');
+                return false;
+            }
+        }
+
+        function warn(message) {
+            testResults.warnings++;
+            log('WARN ' + message, 'warning');
+        }
+
+        function loadModules() {
+            log('开始加载模块...', 'info');
+            
+            const modules = [
+                'MokaSelectors',
+                'MokaSelectorMonitor', 
+                'MokaDOMUtils',
+                'MokaLogger',
+                'MokaStorageUtils',
+                'MokaCandidateListModule',
+                'MokaResumeDetailModule',
+                'MokaResumeImageModule',
+                'MokaRecommendationModule'
+            ];
+
+            let allLoaded = true;
+            modules.forEach(function(module) {
+                const loaded = typeof window[module] !== 'undefined';
+                if (loaded) {
+                    log('PASS ' + module + ' 加载成功', 'success');
+                } else {
+                    log('FAIL ' + module + ' 加载失败', 'error');
+                    allLoaded = false;
+                }
+            });
+
+            if (allLoaded) {
+                document.getElementById('runTestsBtn').disabled = false;
+                log('所有模块加载完成，可以开始测试', 'success');
+            } else {
+                log('部分模块加载失败，请检查文件路径', 'error');
+            }
+        }
+
+        async function runPhase1Tests() {
+            log('========== 开始第一阶段测试 ==========', 'info');
+            clearLog();
+            
+            log('\n--- 测试 Selectors.js ---', 'info');
+            assert(typeof MokaSelectors !== 'undefined', 'Selectors模块加载', 'Selectors模块未加载');
+            
+            if (typeof MokaSelectors !== 'undefined') {
+                assert(typeof MokaSelectors.Selectors === 'object', '选择器配置存在', '选择器配置不存在');
+                assert(typeof MokaSelectors.getSelector === 'function', 'getSelector函数存在', 'getSelector函数不存在');
+                
+                const selector = MokaSelectors.getSelector('candidateList.pagination');
+                assert(selector !== null, '获取选择器成功: ' + selector, '获取选择器失败');
+                
+                const selectors = MokaSelectors.getSelectorWithFallback('candidateList.pagination');
+                assert(Array.isArray(selectors), '获取降级选择器数组成功', '获取降级选择器数组失败');
+                
+                const isValid = MokaSelectors.validateSelector('body');
+                assert(isValid, '选择器语法验证成功', '选择器语法验证失败');
+            }
+
+            log('\n--- 测试 SelectorMonitor.js ---', 'info');
+            assert(typeof MokaSelectorMonitor !== 'undefined', 'SelectorMonitor模块加载', 'SelectorMonitor模块未加载');
+            
+            if (typeof MokaSelectorMonitor !== 'undefined') {
+                assert(typeof MokaSelectorMonitor.quickCheck === 'function', 'quickCheck函数存在', 'quickCheck函数不存在');
+                assert(typeof MokaSelectorMonitor.testSelector === 'function', 'testSelector函数存在', 'testSelector函数不存在');
+                
+                const testResult = MokaSelectorMonitor.testSelector('body');
+                assert(testResult.valid, 'testSelector测试成功', 'testSelector测试失败');
+            }
+
+            log('\n--- 测试 DOMUtils.js ---', 'info');
+            assert(typeof MokaDOMUtils !== 'undefined', 'DOMUtils模块加载', 'DOMUtils模块未加载');
+            
+            if (typeof MokaDOMUtils !== 'undefined') {
+                const body = MokaDOMUtils.querySelector('body');
+                assert(body !== null, 'querySelector测试成功', 'querySelector测试失败');
+                
+                const divs = MokaDOMUtils.querySelectorAll('div');
+                assert(divs.length > 0, 'querySelectorAll找到' + divs.length + '个div', 'querySelectorAll测试失败');
+                
+                const text = MokaDOMUtils.getTextContent(body);
+                assert(text.length > 0, 'getTextContent获取文本长度: ' + text.length, 'getTextContent测试失败');
+                
+                const parts = MokaDOMUtils.parseDelimitedText('学校|专业|学历|年份', '|');
+                assert(parts.length === 4, 'parseDelimitedText解析成功: ' + parts.join(', '), 'parseDelimitedText测试失败');
+                
+                const year = MokaDOMUtils.extractTextByPattern('2020-2024', /\d{4}/g, 0);
+                assert(year === '2020', 'extractTextByPattern提取年份: ' + year, 'extractTextByPattern测试失败');
+            }
+
+            log('\n--- 测试 Logger.js ---', 'info');
+            assert(typeof MokaLogger !== 'undefined', 'Logger模块加载', 'Logger模块未加载');
+            
+            if (typeof MokaLogger !== 'undefined') {
+                MokaLogger.setTabId(1);
+                log('setTabId设置成功', 'info');
+                
+                MokaLogger.debug('这是debug日志');
+                MokaLogger.info('这是info日志');
+                MokaLogger.success('这是success日志');
+                MokaLogger.warning('这是warning日志');
+                MokaLogger.error('这是error日志');
+                log('各级别日志测试完成', 'success');
+                
+                const buffer = MokaLogger.getLogBuffer();
+                assert(buffer.length > 0, '日志缓冲区记录数: ' + buffer.length, '日志缓冲区为空');
+                
+                MokaLogger.clearLogBuffer();
+                const clearedBuffer = MokaLogger.getLogBuffer();
+                assert(clearedBuffer.length === 0, '日志缓冲区清空成功', '日志缓冲区清空失败');
+            }
+
+            log('\n--- 测试 StorageUtils.js ---', 'info');
+            assert(typeof MokaStorageUtils !== 'undefined', 'StorageUtils模块加载', 'StorageUtils模块未加载');
+            
+            if (typeof MokaStorageUtils !== 'undefined') {
+                MokaStorageUtils.setSync('test_sync', 'sync_value');
+                const syncValue = MokaStorageUtils.getSync('test_sync');
+                assert(syncValue === 'sync_value', '同步存储测试成功: ' + syncValue, '同步存储测试失败');
+                
+                MokaStorageUtils.setToCache('test_cache', 'cached_value');
+                const cached = MokaStorageUtils.getFromCache('test_cache');
+                assert(cached === 'cached_value', '缓存测试成功: ' + cached, '缓存测试失败');
+            }
+
+            log('\n--- 测试业务模块加载 ---', 'info');
+            assert(typeof MokaCandidateListModule !== 'undefined', 'CandidateListModule加载', 'CandidateListModule未加载');
+            assert(typeof MokaResumeDetailModule !== 'undefined', 'ResumeDetailModule加载', 'ResumeDetailModule未加载');
+            assert(typeof MokaResumeImageModule !== 'undefined', 'ResumeImageModule加载', 'ResumeImageModule未加载');
+            assert(typeof MokaRecommendationModule !== 'undefined', 'RecommendationModule加载', 'RecommendationModule未加载');
+
+            log('\n--- 测试业务模块函数 ---', 'info');
+            if (typeof MokaCandidateListModule !== 'undefined') {
+                assert(typeof MokaCandidateListModule.detectPageType === 'function', 'detectPageType函数存在', 'detectPageType函数不存在');
+                assert(typeof MokaCandidateListModule.extractCandidates === 'function', 'extractCandidates函数存在', 'extractCandidates函数不存在');
+            }
+            
+            if (typeof MokaResumeDetailModule !== 'undefined') {
+                assert(typeof MokaResumeDetailModule.extractContactInfo === 'function', 'extractContactInfo函数存在', 'extractContactInfo函数不存在');
+                assert(typeof MokaResumeDetailModule.isCandidateLocked === 'function', 'isCandidateLocked函数存在', 'isCandidateLocked函数不存在');
+            }
+            
+            if (typeof MokaResumeImageModule !== 'undefined') {
+                assert(typeof MokaResumeImageModule.captureResume === 'function', 'captureResume函数存在', 'captureResume函数不存在');
+            }
+            
+            if (typeof MokaRecommendationModule !== 'undefined') {
+                assert(typeof MokaRecommendationModule.recommendToTeam === 'function', 'recommendToTeam函数存在', 'recommendToTeam函数不存在');
+            }
+
+            log('\n========== 第一阶段测试完成 ==========', 'info');
+            updateResults();
+        }
+    </script>
+</body>
+</html>

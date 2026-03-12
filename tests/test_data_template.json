@@ -1,0 +1,191 @@
+{
+  "testData": {
+    "candidates": [
+      {
+        "id": "candidate_001",
+        "name": "龚振佳",
+        "school": "浙江大学",
+        "major": "产品设计",
+        "education": "本科",
+        "graduationYear": "2022",
+        "phone": "+86 17326089156 (浙江杭州)",
+        "email": "576903433@qq.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/747870752/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_002",
+        "name": "李森",
+        "school": "河海大学",
+        "major": "物联网工程",
+        "education": "本科",
+        "graduationYear": "2022",
+        "phone": "+86 15836701367 (河南驻马店)",
+        "email": "15836701367@163.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/750264411/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_003",
+        "name": "岳晓涵",
+        "school": "中国农业大学",
+        "major": "园林专业",
+        "education": "本科",
+        "graduationYear": "2022",
+        "phone": "+86 19279370415",
+        "email": "19279370415@163.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/762586936/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_004",
+        "name": "杨华敏",
+        "school": "广西大学",
+        "major": "木材科学与工程",
+        "education": "本科",
+        "graduationYear": "2019",
+        "phone": "+86 18777114560",
+        "email": "614530069@qq.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/761439613/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_005",
+        "name": "叶铖通",
+        "school": "西北工业大学",
+        "major": "电子信息工程",
+        "education": "本科",
+        "graduationYear": "2021",
+        "phone": "+86 15905819469",
+        "email": "15905819469@139.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/759044437/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_006",
+        "name": "朱敏敏",
+        "school": "中山大学",
+        "major": "工商管理",
+        "education": "硕士",
+        "graduationYear": "2020",
+        "phone": "+86 13750017404",
+        "email": "zhumm3@foxmail.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/752810412/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_007",
+        "name": "陈一",
+        "school": "浙江大学",
+        "major": "",
+        "education": "硕士",
+        "graduationYear": "2022",
+        "phone": "+86 18829353048",
+        "email": "walxybut@qq.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/762281371/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_008",
+        "name": "刘俊男",
+        "school": "东北大学",
+        "major": "国际经济法",
+        "education": "本科",
+        "graduationYear": "2022",
+        "phone": "+86 13122134978",
+        "email": "junnanliu@163.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/758988349/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_009",
+        "name": "苗成森",
+        "school": "西藏大学",
+        "major": "建筑学",
+        "education": "本科",
+        "graduationYear": "2021",
+        "phone": "+86 15544796923",
+        "email": "MCS982722766@163.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/746069763/info",
+        "resumeFormat": ""
+      },
+      {
+        "id": "candidate_010",
+        "name": "胡浩南",
+        "school": "浙江大学",
+        "major": "资源利用与植物保护",
+        "education": "硕士",
+        "graduationYear": "2021",
+        "phone": "+86 18819269238",
+        "email": "hnhu12@163.com",
+        "detailUrl": "https://app.mokahr.com/talent_pool/view/100064001/application/745946214/info",
+        "resumeFormat": ""
+      }
+    ],
+    "testScenarios": [
+      {
+        "id": "scenario_001",
+        "name": "基本筛选流程",
+        "targetCount": 10,
+        "screeningCriteria": "至少本科学历",
+        "fullScreeningCriteria": "本科学校为985院校"
+      },
+      {
+        "id": "scenario_002",
+        "name": "候选人信息提取测试",
+        "targetCount": 5,
+        "screeningCriteria": "至少本科学历",
+        "fullScreeningCriteria": "至少本科学历"
+      },
+      {
+        "id": "scenario_003",
+        "name": "简历捕获功能测试",
+        "targetCount": 5,
+        "screeningCriteria": "至少本科学历",
+        "fullScreeningCriteria": "至少本科学历"
+      },
+      {
+        "id": "scenario_004",
+        "name": "初筛功能测试",
+        "targetCount": 5,
+        "screeningCriteria": "至少本科学历",
+        "fullScreeningCriteria": "至少本科学历"
+      },
+      {
+        "id": "scenario_005",
+        "name": "详细评估功能测试",
+        "targetCount": 3,
+        "screeningCriteria": "至少本科学历",
+        "fullScreeningCriteria": "本科学校为985院校"
+      }
+    ]
+  },
+  "instructions": {
+    "candidates": "请填写至少10个候选人的真实信息，用于测试候选人提取功能",
+    "testScenarios": "请填写至少5个测试场景，包含筛选标准",
+    "resumeFormat": "可选值: img-blob, img-page, iframe-svg, iframe-html, other",
+    "education": "可选值: 本科, 硕士, 博士, 大专, 高中",
+    "detailUrl": "候选人详情页的完整URL，用于测试简历捕获功能",
+    "phone": "真实手机号，用于测试联系方式提取功能",
+    "email": "真实邮箱地址，用于测试联系方式提取功能"
+  },
+  "dataRequirements": {
+    "candidates": {
+      "minCount": 10,
+      "recommendedCount": 20,
+      "required": ["name", "school", "major", "education", "graduationYear"],
+      "optional": ["phone", "email", "detailUrl", "resumeFormat"]
+    },
+    "detailUrls": {
+      "minCount": 10,
+      "recommendedCount": 20,
+      "note": "需要包含不同简历格式的详情页"
+    },
+    "resumeFiles": {
+      "minCount": 5,
+      "recommendedCount": 10,
+      "formats": ["PDF", "Word", "图片"],
+      "location": "tests/resumes/ 目录下"
+    }
+  }
+}
