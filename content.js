@@ -1347,19 +1347,24 @@ function navigateToCandidateDetailPagination(candidate) {
 
 function navigateToCandidateDetailInfiniteScroll(candidate) {
   if (candidate.elementRef) {
+    const itemElement = candidate.elementRef.querySelector('.item-NpfQ8Ve_W4');
+    if (itemElement) {
+      itemElement.click();
+      return true;
+    }
     candidate.elementRef.click();
     return true;
   }
   
-  const items = document.querySelectorAll('tr[id]');
+  const items = document.querySelectorAll('.item-NpfQ8Ve_W4');
   
-  for (const tr of items) {
-    const nameElement = tr.querySelector('.sd-foundation-heading-60-39PpK');
+  for (const item of items) {
+    const nameElement = item.querySelector('.sd-foundation-heading-60-39PpK');
     if (nameElement) {
       const nameText = nameElement.textContent.trim();
       const nameMatch = nameText.match(/^[\u4e00-\u9fa5]+/);
       if (nameMatch && nameMatch[0] === candidate.name) {
-        tr.click();
+        item.click();
         return true;
       }
     }
