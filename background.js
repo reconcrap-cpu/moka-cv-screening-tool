@@ -141,7 +141,7 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   saveState();
 });
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   console.log('Received message:', request.action, 'tabId:', request.tabId);
   
   const tabId = request.tabId;
@@ -153,7 +153,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   switch (request.action) {
     case 'startScreening':
-      startScreening(request.config, tabId);
+      await startScreening(request.config, tabId);
       sendResponse({ success: true });
       break;
       
@@ -204,7 +204,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (state.results.length > MAX_RESULTS_IN_MEMORY) {
           // 将超出部分保存到storage
           const overflowResults = state.results.slice(0, -MAX_RESULTS_IN_MEMORY);
-          saveOverflowResults(tabId, overflowResults);
+          await saveOverflowResults(tabId, overflowResults);
           // 只保留最新的MAX_RESULTS_IN_MEMORY个结果
           state.results = state.results.slice(-MAX_RESULTS_IN_MEMORY);
           console.log(`Memory optimization: Trimmed results to ${MAX_RESULTS_IN_MEMORY}, saved ${overflowResults.length} to storage`);
@@ -235,12 +235,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const state = getStateForTab(tabId);
         
         // 内存优化：加载所有结果（包括溢出的部分）
-        const allResults = await loadAllResults(tabId, state);
-        
-        console.log('State for tab', tabId, ':', state);
-        console.log('Total results:', allResults.length, '(in memory:', state.results.length, ')');
-        console.log('================');
-        sendResponse({ results: allResults });
+        loadAllResults(tabId, state).then(allResults => {
+          console.log('State for tab', tabId, ':', state);
+          console.log('Total results:', allResults.length, '(in memory:', state.results.length, ')');
+          console.log('================');
+          sendResponse({ results: allResults });
+        });
+        return true; // 保持消息通道开放，等待异步响应
       }
       break;
       
