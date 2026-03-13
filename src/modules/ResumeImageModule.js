@@ -232,7 +232,8 @@ var MokaResumeImageModule = (function() {
     try {
       var iframeDoc = iframeResume.contentDocument || iframeResume.contentWindow.document;
       
-      var svgElement = iframeDoc.querySelector('.word-page svg');
+      // 优先检测 SVG 格式简历（.word-page svg 或直接 svg）
+      var svgElement = iframeDoc.querySelector('.word-page svg') || iframeDoc.querySelector('svg');
       
       if (svgElement) {
         return svgToPngBase64(svgElement)
@@ -244,6 +245,28 @@ var MokaResumeImageModule = (function() {
             MokaLogger.error('SVG 转 PNG 失败: ' + err.message);
             return tryIframeHtml(iframeDoc);
           });
+      }
+      
+      // 检测 .word-page 容器（可能包含其他格式）
+      var wordPage = iframeDoc.querySelector('.word-page');
+      if (wordPage) {
+        MokaLogger.info('检测到 .word-page 容器');
+        // 尝试将整个容器转为图片
+        if (typeof html2canvas !== 'undefined') {
+          return html2canvas(wordPage, {
+            backgroundColor: '#FFFFFF',
+            scale: 2,
+            useCORS: true,
+            allowTaint: true
+          }).then(function(canvas) {
+            var dataUrl = canvas.toDataURL('image/png');
+            MokaLogger.success('word-page 截图成功');
+            return [dataUrl];
+          }).catch(function(err) {
+            MokaLogger.error('word-page 截图失败: ' + err.message);
+            return tryIframeHtml(iframeDoc);
+          });
+        }
       }
       
       return tryIframeHtml(iframeDoc);
