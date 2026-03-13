@@ -235,13 +235,16 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         const state = getStateForTab(tabId);
         
         // 内存优化：加载所有结果（包括溢出的部分）
-        loadAllResults(tabId, state).then(allResults => {
+        try {
+          const allResults = await loadAllResults(tabId, state);
           console.log('State for tab', tabId, ':', state);
           console.log('Total results:', allResults.length, '(in memory:', state.results.length, ')');
           console.log('================');
           sendResponse({ results: allResults });
-        });
-        return true; // 保持消息通道开放，等待异步响应
+        } catch (error) {
+          console.error('Export failed:', error);
+          sendResponse({ results: [], error: error.message });
+        }
       }
       break;
       
