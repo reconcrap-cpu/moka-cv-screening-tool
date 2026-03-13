@@ -68,6 +68,12 @@ if (isInitialized) {
   chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     console.log('Content script received message:', request);
     
+    // 处理 ping 消息，用于检测内容脚本是否已注入
+    if (request.action === 'ping') {
+      sendResponse({ success: true, initialized: true });
+      return true;
+    }
+    
     if (request.action === 'startScreening') {
       currentTabId = request.tabId;
       console.log('Content script set currentTabId to:', currentTabId);
