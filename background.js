@@ -141,119 +141,123 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   saveState();
 });
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Received message:', request.action, 'tabId:', request.tabId);
   
   const tabId = request.tabId;
   if (tabId === null || tabId === undefined || tabId === 'undefined') {
     console.error('Invalid tabId in message!', request);
     sendResponse({ success: false, error: 'Invalid tabId' });
-    return true;
+    return false;
   }
   
-  switch (request.action) {
-    case 'startScreening':
-      await startScreening(request.config, tabId);
-      sendResponse({ success: true });
-      break;
-      
-    case 'pauseScreening':
-      pauseScreening(tabId);
-      sendResponse({ success: true });
-      break;
-      
-    case 'resumeScreening':
-      resumeScreening(tabId);
-      sendResponse({ success: true });
-      break;
-      
-    case 'stopScreening':
-      stopScreening(tabId);
-      sendResponse({ success: true });
-      break;
-      
-    case 'getState':
-      sendResponse({ state: getStateForTab(tabId) });
-      break;
-      
-    case 'updateProgress':
-      {
-        const state = getStateForTab(tabId);
-        if (!state) {
-          sendResponse({ success: false });
+  // 使用async IIFE处理异步操作
+  (async () => {
+    try {
+      switch (request.action) {
+        case 'startScreening':
+          await startScreening(request.config, tabId);
+          sendResponse({ success: true });
           break;
-        }
-        state.progress = { ...state.progress, ...request.progress };
-        saveState();
-        updateStatus(tabId, 'running');
-        sendResponse({ success: true });
-      }
-      break;
-      
-    case 'addResult':
-      {
-        console.log('Adding result for tab:', tabId, 'Result:', request.result);
-        const state = getStateForTab(tabId);
-        if (!state) {
-          sendResponse({ success: false });
+          
+        case 'pauseScreening':
+          pauseScreening(tabId);
+          sendResponse({ success: true });
           break;
-        }
-        state.results.push(request.result);
-        
-        // 内存优化：限制内存中的results数量
-        if (state.results.length > MAX_RESULTS_IN_MEMORY) {
-          // 将超出部分保存到storage
-          const overflowResults = state.results.slice(0, -MAX_RESULTS_IN_MEMORY);
-          await saveOverflowResults(tabId, overflowResults);
-          // 只保留最新的MAX_RESULTS_IN_MEMORY个结果
-          state.results = state.results.slice(-MAX_RESULTS_IN_MEMORY);
-          console.log(`Memory optimization: Trimmed results to ${MAX_RESULTS_IN_MEMORY}, saved ${overflowResults.length} to storage`);
-        }
-        
-        console.log('Results for tab', tabId, 'now:', state.results.length, 'in memory');
-        saveState();
-        sendResponse({ success: true });
+          
+        case 'resumeScreening':
+          resumeScreening(tabId);
+          sendResponse({ success: true });
+          break;
+          
+        case 'stopScreening':
+          stopScreening(tabId);
+          sendResponse({ success: true });
+          break;
+          
+        case 'getState':
+          sendResponse({ state: getStateForTab(tabId) });
+          break;
+          
+        case 'updateProgress':
+          {
+            const state = getStateForTab(tabId);
+            if (!state) {
+              sendResponse({ success: false });
+              break;
+            }
+            state.progress = { ...state.progress, ...request.progress };
+            saveState();
+            updateStatus(tabId, 'running');
+            sendResponse({ success: true });
+          }
+          break;
+          
+        case 'addResult':
+          {
+            console.log('Adding result for tab:', tabId, 'Result:', request.result);
+            const state = getStateForTab(tabId);
+            if (!state) {
+              sendResponse({ success: false });
+              break;
+            }
+            state.results.push(request.result);
+            
+            // 内存优化：限制内存中的results数量
+            if (state.results.length > MAX_RESULTS_IN_MEMORY) {
+              // 将超出部分保存到storage
+              const overflowResults = state.results.slice(0, -MAX_RESULTS_IN_MEMORY);
+              await saveOverflowResults(tabId, overflowResults);
+              // 只保留最新的MAX_RESULTS_IN_MEMORY个结果
+              state.results = state.results.slice(-MAX_RESULTS_IN_MEMORY);
+              console.log(`Memory optimization: Trimmed results to ${MAX_RESULTS_IN_MEMORY}, saved ${overflowResults.length} to storage`);
+            }
+            
+            console.log('Results for tab', tabId, 'now:', state.results.length, 'in memory');
+            saveState();
+            sendResponse({ success: true });
+          }
+          break;
+          
+        case 'addLog':
+          addLog(tabId, request.message, request.type || 'info');
+          sendResponse({ success: true });
+          break;
+          
+        case 'screeningComplete':
+          screeningComplete(tabId);
+          sendResponse({ success: true });
+          break;
+          
+        case 'exportResults':
+          {
+            console.log('=== EXPORT DEBUG ===');
+            console.log('Export request for tab:', tabId);
+            console.log('All screeningStatesByTab:', screeningStatesByTab);
+            console.log('Keys in states:', Object.keys(screeningStatesByTab));
+            const state = getStateForTab(tabId);
+            
+            // 内存优化：加载所有结果（包括溢出的部分）
+            const allResults = await loadAllResults(tabId, state);
+            console.log('State for tab', tabId, ':', state);
+            console.log('Total results:', allResults.length, '(in memory:', state.results.length, ')');
+            console.log('================');
+            sendResponse({ results: allResults });
+          }
+          break;
+          
+        case 'clearState':
+          clearState(tabId);
+          sendResponse({ success: true });
+          break;
       }
-      break;
-      
-    case 'addLog':
-      addLog(tabId, request.message, request.type || 'info');
-      sendResponse({ success: true });
-      break;
-      
-    case 'screeningComplete':
-      screeningComplete(tabId);
-      sendResponse({ success: true });
-      break;
-      
-    case 'exportResults':
-      {
-        console.log('=== EXPORT DEBUG ===');
-        console.log('Export request for tab:', tabId);
-        console.log('All screeningStatesByTab:', screeningStatesByTab);
-        console.log('Keys in states:', Object.keys(screeningStatesByTab));
-        const state = getStateForTab(tabId);
-        
-        // 内存优化：加载所有结果（包括溢出的部分）
-        try {
-          const allResults = await loadAllResults(tabId, state);
-          console.log('State for tab', tabId, ':', state);
-          console.log('Total results:', allResults.length, '(in memory:', state.results.length, ')');
-          console.log('================');
-          sendResponse({ results: allResults });
-        } catch (error) {
-          console.error('Export failed:', error);
-          sendResponse({ results: [], error: error.message });
-        }
-      }
-      break;
-      
-    case 'clearState':
-      clearState(tabId);
-      sendResponse({ success: true });
-      break;
-  }
+    } catch (error) {
+      console.error('Message handler error:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+  })();
   
+  // 返回true表示会异步发送响应
   return true;
 });
 
