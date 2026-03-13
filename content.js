@@ -834,12 +834,21 @@ function extractCandidateContactInfo() {
 
 function isDetailPageUrl(url) {
   if (!url) url = window.location.href;
-  return url.includes('/application/') && url.includes('/info');
+  // 支持两种详情页URL格式：
+  // 1. /application/{id}/info - 完整详情页
+  // 2. /application/{id} - 简化详情页（没有 /info）
+  // 关键是 URL 中包含 /application/ 且后面跟着数字
+  const hasApplicationPattern = /\/application\/\d+/.test(url);
+  const isCandidatePage = url.includes('/candidates/application/');
+  return hasApplicationPattern || isCandidatePage;
 }
 
 function isListPageUrl(url) {
   if (!url) url = window.location.href;
-  return (url.includes('/talent_pool/view/') || url.includes('/candidate-list/')) && !url.includes('/info');
+  // 列表页：包含 /talent_pool/view/ 或 /candidates 但不包含 /application/
+  const isTalentPool = url.includes('/talent_pool/view/') && !url.includes('/application/');
+  const isCandidatesList = url.includes('/candidates?') || url.includes('/candidates&');
+  return isTalentPool || isCandidatesList;
 }
 
 function hasUrlDuplication(url) {
@@ -922,6 +931,55 @@ async function verifyReturnToListPage(originalListUrl, timeout) {
   return false;
 }
 
+async function waitForUrlChange(expectedUrlPattern, timeout) {
+  timeout = timeout || 8000;
+  const startTime = Date.now();
+  const initialUrl = window.location.href;
+  
+  while (Date.now() - startTime < timeout) {
+    const currentUrl = window.location.href;
+    
+    // URL 已经变化
+    if (currentUrl !== initialUrl) {
+      // 检查是否匹配期望的模式
+      if (expectedUrlPattern) {
+        if (typeof expectedUrlPattern === 'function') {
+          if (expectedUrlPattern(currentUrl)) {
+            return { changed: true, url: currentUrl };
+          }
+        } else if (currentUrl.includes(expectedUrlPattern)) {
+          return { changed: true, url: currentUrl };
+        }
+      } else {
+        return { changed: true, url: currentUrl };
+      }
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  return { changed: false, url: window.location.href };
+}
+
+async function waitForPageLoad(selector, timeout) {
+  timeout = timeout || 8000;
+  const startTime = Date.now();
+  
+  const selectors = Array.isArray(selector) ? selector : [selector];
+  
+  while (Date.now() - startTime < timeout) {
+    for (const sel of selectors) {
+      const element = document.querySelector(sel);
+      if (element) {
+        return true;
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  return false;
+}
+
 async function processCandidate(candidate) {
   addLog('处理候选人: ' + candidate.name, 'info');
   
@@ -944,7 +1002,14 @@ async function processCandidate(candidate) {
     };
   }
   
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  // 动态等待 URL 变化为详情页
+  const urlResult = await waitForUrlChange(isDetailPageUrl, 8000);
+  
+  if (!urlResult.changed) {
+    addLog('导航后URL未变化或未变为详情页: ' + window.location.href, 'warning');
+    // 额外等待并重试
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
   
   let candidateDetailUrl = window.location.href;
   
@@ -977,23 +1042,31 @@ async function processCandidate(candidate) {
     }
   }
   
+  // 再次验证 URL 是否为详情页（支持两种格式）
   if (!isDetailPageUrl(candidateDetailUrl)) {
     addLog('导航后URL不是详情页: ' + candidateDetailUrl, 'error');
-    window.history.back();
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    return {
-      name: candidate.name,
-      qualified: false,
-      apiFailed: false,
-      reason: '导航失败，未进入详情页',
-      detailUrl: candidateDetailUrl,
-      school: '',
-      major: '',
-      bachelorSchool: '',
-      bachelorMajor: '',
-      phone: '',
-      email: ''
-    };
+    // 尝试等待更长时间
+    const retryUrlResult = await waitForUrlChange(isDetailPageUrl, 5000);
+    candidateDetailUrl = window.location.href;
+    
+    if (!isDetailPageUrl(candidateDetailUrl)) {
+      addLog('重试后URL仍不是详情页，跳过该候选人', 'error');
+      window.history.back();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return {
+        name: candidate.name,
+        qualified: false,
+        apiFailed: false,
+        reason: '导航失败，未进入详情页',
+        detailUrl: candidateDetailUrl,
+        school: '',
+        major: '',
+        bachelorSchool: '',
+        bachelorMajor: '',
+        phone: '',
+        email: ''
+      };
+    }
   }
   
   const detailPageLoaded = await waitForDetailPageLoad(8000);
