@@ -1,5 +1,6 @@
 # IDE 配置
 .trae/
+!.trae/skills/
 .vscode/
 .idea/
 
