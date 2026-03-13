@@ -224,6 +224,7 @@ var MokaResumeImageModule = (function() {
     var iframeResume = document.getElementById('iframeResume');
     
     if (!iframeResume) {
+      MokaLogger.info('未找到iframeResume元素');
       return Promise.resolve(null);
     }
     
@@ -232,10 +233,23 @@ var MokaResumeImageModule = (function() {
     try {
       var iframeDoc = iframeResume.contentDocument || iframeResume.contentWindow.document;
       
+      if (!iframeDoc) {
+        MokaLogger.warning('无法访问iframe文档');
+        return Promise.resolve(null);
+      }
+      
+      // 检查iframe中的元素数量
+      var svgs = iframeDoc.querySelectorAll('svg');
+      var wordPages = iframeDoc.querySelectorAll('.word-page');
+      var allImgs = iframeDoc.querySelectorAll('img');
+      
+      MokaLogger.info('iframe内容: ' + svgs.length + ' 个SVG, ' + wordPages.length + ' 个word-page, ' + allImgs.length + ' 个图片');
+      
       // 优先检测 SVG 格式简历（.word-page svg 或直接 svg）
       var svgElement = iframeDoc.querySelector('.word-page svg') || iframeDoc.querySelector('svg');
       
       if (svgElement) {
+        MokaLogger.info('找到SVG元素，尝试转换为PNG...');
         return svgToPngBase64(svgElement)
           .then(function(pngBase64) {
             MokaLogger.success('SVG 转 PNG 成功');
@@ -250,7 +264,7 @@ var MokaResumeImageModule = (function() {
       // 检测 .word-page 容器（可能包含其他格式）
       var wordPage = iframeDoc.querySelector('.word-page');
       if (wordPage) {
-        MokaLogger.info('检测到 .word-page 容器');
+        MokaLogger.info('检测到 .word-page 容器，尝试截图...');
         // 尝试将整个容器转为图片
         if (typeof html2canvas !== 'undefined') {
           return html2canvas(wordPage, {
@@ -266,6 +280,8 @@ var MokaResumeImageModule = (function() {
             MokaLogger.error('word-page 截图失败: ' + err.message);
             return tryIframeHtml(iframeDoc);
           });
+        } else {
+          MokaLogger.warning('html2canvas未加载，跳过word-page截图');
         }
       }
       

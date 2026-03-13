@@ -165,9 +165,28 @@ function detectPageType() {
   const hasPagination = document.querySelector('.sd-Pagination-forward-Qh_cN, [class*="Pagination-forward"], button[class*="next"]');
   const hasInfiniteScroll = document.querySelector('.candidate-main__infinite-scroll, .item-NpfQ8Ve_W4');
   
+  // 检查候选人容器类型
+  const hasContentClass = document.querySelectorAll('.content-OKNZCZyG5d').length > 0;
+  const hasTrWithId = document.querySelectorAll('tr[id]').length > 0;
+  
+  // 改进的判断逻辑：
+  // 1. 如果有.content-OKNZCZyG5d容器，优先判断为pagination
+  // 2. 如果有tr[id]容器，判断为infinite-scroll
+  // 3. 如果有分页按钮但没有无限滚动容器，判断为pagination
+  // 4. 如果有无限滚动容器但没有分页按钮，判断为infinite-scroll
+  
+  if (hasContentClass) {
+    return 'pagination';
+  }
+  
+  if (hasTrWithId) {
+    return 'infinite-scroll';
+  }
+  
   if (hasInfiniteScroll && !hasPagination) {
     return 'infinite-scroll';
   }
+  
   return 'pagination';
 }
 
