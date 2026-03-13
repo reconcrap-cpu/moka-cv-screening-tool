@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moka简历筛选自动化测试控制台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .status-item .label {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .status-item .value {
+            color: #667eea;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 10px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-info { color: #4fc3f7; }
+        .log-success { color: #66bb6a; }
+        .log-warning { color: #ffa726; }
+        .log-error { color: #ef5350; }
+        
+        .config-section {
+            margin-top: 20px;
+        }
+        
+        .config-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .config-item label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 26px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .running {
+            animation: pulse 2s infinite;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .badge-success { background: #28a745; color: white; }
+        .badge-warning { background: #ffc107; color: #212529; }
+        .badge-danger { background: #dc3545; color: white; }
+        .badge-info { background: #17a2b8; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Moka简历筛选自动化测试控制台</h1>
+            <p>智能测试 · 自动修复 · 详细报告</p>
+        </div>
+        
+        <div class="card">
+            <h2>📊 测试状态</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="label">运行状态</div>
+                    <div class="value" id="status">待机</div>
+                </div>
+                <div class="status-item">
+                    <div class="label">已处理</div>
+                    <div class="value" id="processed">0</div>
+                </div>
+                <div class="status-item">
+                    <div class="label">错误次数</div>
+                    <div class="value" id="errors">0</div>
+                </div>
+                <div class="status-item">
+                    <div class="label">已修复</div>
+                    <div class="value" id="fixed">0</div>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress" style="width: 0%">0%</div>
+            </div>
+            
+            <div class="input-group">
+                <input type="number" id="targetCount" placeholder="目标数量" value="500">
+                <button class="btn btn-primary" onclick="startTest()">🚀 开始测试</button>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-warning" onclick="pauseTest()">⏸️ 暂停</button>
+                <button class="btn btn-success" onclick="resumeTest()">▶️ 恢复</button>
+                <button class="btn btn-danger" onclick="stopTest()">⏹️ 停止</button>
+                <button class="btn btn-info" onclick="getStatus()">📊 查看状态</button>
+                <button class="btn btn-primary" onclick="generateReport()">📋 生成报告</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>⚙️ 测试配置</h2>
+            <div class="config-section">
+                <div class="config-item">
+                    <label>错误时暂停</label>
+                    <label class="switch">
+                        <input type="checkbox" id="pauseOnError" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="config-item">
+                    <label>自动修复</label>
+                    <label class="switch">
+                        <input type="checkbox" id="autoFix" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="config-item">
+                    <label>详细日志</label>
+                    <label class="switch">
+                        <input type="checkbox" id="verboseLog" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="button-group" style="margin-top: 20px;">
+                <button class="btn btn-info" onclick="quickTest(10)">快速测试 (10人)</button>
+                <button class="btn btn-info" onclick="quickTest(100)">标准测试 (100人)</button>
+                <button class="btn btn-info" onclick="quickTest(500)">完整测试 (500人)</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📝 实时日志</h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-info">[系统] 测试控制台已就绪</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 日志函数
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // 更新状态显示
+        function updateStatus(data) {
+            document.getElementById('status').textContent = data.isRunning ? (data.isPaused ? '已暂停' : '运行中') : '待机';
+            document.getElementById('processed').textContent = data.processedCount || 0;
+            document.getElementById('errors').textContent = data.errorCount || 0;
+            document.getElementById('fixed').textContent = data.fixedCount || 0;
+            
+            const progress = data.progress || 0;
+            document.getElementById('progress').style.width = progress + '%';
+            document.getElementById('progress').textContent = progress + '%';
+            
+            // 添加状态样式
+            const statusEl = document.getElementById('status');
+            statusEl.className = 'value';
+            if (data.isRunning && !data.isPaused) {
+                statusEl.classList.add('running');
+            }
+        }
+        
+        // 开始测试
+        function startTest() {
+            const targetCount = parseInt(document.getElementById('targetCount').value) || 500;
+            addLog(`开始测试，目标: ${targetCount} 位人选`, 'info');
+            
+            // 这里调用实际的测试函数
+            if (typeof autoTest !== 'undefined') {
+                autoTest.start(targetCount);
+            } else {
+                addLog('测试系统未加载，请在Moka页面中使用', 'error');
+            }
+        }
+        
+        // 快速测试
+        function quickTest(count) {
+            document.getElementById('targetCount').value = count;
+            startTest();
+        }
+        
+        // 暂停测试
+        function pauseTest() {
+            addLog('暂停测试', 'warning');
+            if (typeof autoTest !== 'undefined') {
+                autoTest.pause();
+            }
+        }
+        
+        // 恢复测试
+        function resumeTest() {
+            addLog('恢复测试', 'success');
+            if (typeof autoTest !== 'undefined') {
+                autoTest.resume();
+            }
+        }
+        
+        // 停止测试
+        function stopTest() {
+            addLog('停止测试', 'error');
+            if (typeof autoTest !== 'undefined') {
+                autoTest.stop();
+            }
+        }
+        
+        // 获取状态
+        function getStatus() {
+            if (typeof autoTest !== 'undefined') {
+                const status = autoTest.getStatus();
+                updateStatus(status);
+                addLog(`当前状态: 已处理 ${status.processedCount}, 错误 ${status.errorCount}, 已修复 ${status.fixedCount}`, 'info');
+            }
+        }
+        
+        // 生成报告
+        function generateReport() {
+            addLog('生成测试报告...', 'info');
+            if (typeof autoTest !== 'undefined') {
+                const report = autoTest.generateReport();
+                console.log('测试报告:', report);
+                addLog(`测试完成! 成功率: ${report.successRate.toFixed(1)}%`, 'success');
+            }
+        }
+        
+        // 配置更新
+        document.getElementById('pauseOnError').addEventListener('change', function() {
+            if (typeof autoTest !== 'undefined') {
+                autoTest.testConfig.pauseOnError = this.checked;
+                addLog(`错误时暂停: ${this.checked ? '开启' : '关闭'}`, 'info');
+            }
+        });
+        
+        document.getElementById('autoFix').addEventListener('change', function() {
+            if (typeof autoTest !== 'undefined') {
+                autoTest.testConfig.autoFix = this.checked;
+                addLog(`自动修复: ${this.checked ? '开启' : '关闭'}`, 'info');
+            }
+        });
+        
+        document.getElementById('verboseLog').addEventListener('change', function() {
+            if (typeof autoTest !== 'undefined') {
+                autoTest.testConfig.logLevel = this.checked ? 'verbose' : 'normal';
+                addLog(`详细日志: ${this.checked ? '开启' : '关闭'}`, 'info');
+            }
+        });
+        
+        // 定期更新状态
+        setInterval(() => {
+            if (typeof autoTest !== 'undefined' && autoTest.testState.isRunning) {
+                getStatus();
+            }
+        }, 5000);
+        
+        addLog('测试控制台已加载完成', 'success');
+    </script>
+</body>
+</html>

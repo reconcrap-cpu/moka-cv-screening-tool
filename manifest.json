@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Moka简历筛选Agent",
+  "version": "2.0",
+  "description": "自动提取人选信息并通过大模型进行完整筛选，支持后台运行和结果导出",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://app.mokahr.com/*",
+    "https://*.mokahr.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://app.mokahr.com/*",
+        "https://*.mokahr.com/*"
+      ],
+      "js": [
+        "html2canvas.min.js",
+        "config.js",
+        "src/constants/Selectors.js",
+        "src/utils/SelectorMonitor.js",
+        "src/utils/DOMUtils.js",
+        "src/utils/Logger.js",
+        "src/utils/StorageUtils.js",
+        "src/modules/CandidateListModule.js",
+        "src/modules/ResumeDetailModule.js",
+        "src/modules/ResumeImageModule.js",
+        "src/modules/RecommendationModule.js",
+        "content.js",
+        "auto-test.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "打开人选筛选助手"
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+}
