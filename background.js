@@ -262,24 +262,69 @@ async function startScreening(config, tabId) {
   addLog(tabId, '开始筛选流程', 'info');
   updateStatus(tabId, 'running');
   
-  if (!injectedTabs.has(tabId)) {
-    console.log('Injecting content script into tab:', tabId, 'for the first time');
+  // 检查内容脚本是否已注入
+  let needsInjection = !injectedTabs.has(tabId);
+  
+  // 额外检查：尝试向内容脚本发送ping消息
+  if (!needsInjection) {
     try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['content.js']
-      });
+      const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+      if (response && response.success) {
+        console.log('Content script already active in tab:', tabId);
+        needsInjection = false;
+      }
+    } catch (err) {
+      console.log('Content script not responding, needs re-injection:', err.message);
+      needsInjection = true;
+    }
+  }
+  
+  if (needsInjection) {
+    console.log('Injecting all content scripts into tab:', tabId);
+    try {
+      // 注入所有依赖文件
+      const scriptsToInject = [
+        'html2canvas.min.js',
+        'config.js',
+        'src/constants/Selectors.js',
+        'src/utils/SelectorMonitor.js',
+        'src/utils/DOMUtils.js',
+        'src/utils/Logger.js',
+        'src/utils/StorageUtils.js',
+        'src/modules/CandidateListModule.js',
+        'src/modules/ResumeDetailModule.js',
+        'src/modules/ResumeImageModule.js',
+        'src/modules/RecommendationModule.js',
+        'content.js',
+        'auto-test.js'
+      ];
+      
+      for (const script of scriptsToInject) {
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            files: [script]
+          });
+          console.log('Injected:', script);
+        } catch (scriptErr) {
+          console.warn('Failed to inject', script, ':', scriptErr.message);
+        }
+      }
+      
       injectedTabs.add(tabId);
       addLog(tabId, 'Content script已注入', 'info');
+      
+      // 等待脚本初始化
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
     } catch (err) {
-      addLog(tabId, 'Content script注入: ' + err.message, 'warning');
+      addLog(tabId, 'Content script注入失败: ' + err.message, 'error');
+      return;
     }
   } else {
     console.log('Content script already injected for tab:', tabId, ', skipping injection');
     addLog(tabId, '使用已注入的Content script', 'info');
   }
-  
-  await new Promise(resolve => setTimeout(resolve, 500));
   
   console.log('Sending startScreening message to tab:', tabId);
   chrome.tabs.sendMessage(tabId, {

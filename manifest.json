@@ -11,11 +11,15 @@
     "sidePanel"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://app.mokahr.com/*",
+    "https://*.mokahr.com/*"
   ],
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://app.mokahr.com/*",
+        "https://*.mokahr.com/*"
+      ],
       "js": [
         "html2canvas.min.js",
         "config.js",
