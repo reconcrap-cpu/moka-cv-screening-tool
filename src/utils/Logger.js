@@ -16,7 +16,9 @@ var MokaLogger = (function() {
   var currentLevel = LOG_LEVELS.INFO;
   var currentTabId = null;
   var logBuffer = [];
-  var maxBufferSize = 1000;
+  var maxBufferSize = 500; // 内存优化：从1000减少到500
+  var cleanupInterval = 60000; // 每分钟清理一次
+  var lastCleanupTime = Date.now();
 
   function setTabId(tabId) {
     currentTabId = tabId;
@@ -47,8 +49,19 @@ var MokaLogger = (function() {
     
     logBuffer.push(entry);
     
-    if (logBuffer.length > maxBufferSize) {
-      logBuffer.shift();
+    // 内存优化：定期清理旧日志
+    var now = Date.now();
+    if (now - lastCleanupTime > cleanupInterval) {
+      // 只保留最近的maxBufferSize条日志
+      if (logBuffer.length > maxBufferSize) {
+        logBuffer = logBuffer.slice(-maxBufferSize);
+      }
+      lastCleanupTime = now;
+    }
+    
+    // 如果超过限制，立即清理
+    if (logBuffer.length > maxBufferSize * 1.5) {
+      logBuffer = logBuffer.slice(-maxBufferSize);
     }
   }
 

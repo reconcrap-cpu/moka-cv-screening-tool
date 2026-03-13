@@ -83,9 +83,14 @@ var MokaCandidateListModule = (function() {
   }
 
   function extractCandidateFromContainer(container, index) {
+    // 为容器添加唯一ID（如果没有）
+    if (!container.id) {
+      container.id = 'candidate_' + Date.now() + '_' + index;
+    }
+    
     var candidate = {
-      id: container.id || 'candidate_' + Date.now() + '_' + index,
-      elementRef: container,
+      id: container.id,
+      // elementRef: container, // 移除DOM引用，避免内存泄漏
       name: '未知',
       school: '未知',
       major: '未知',
@@ -121,9 +126,14 @@ var MokaCandidateListModule = (function() {
   }
 
   function extractCandidateFromTableRow(row, index) {
+    // 为行添加唯一ID（如果没有）
+    if (!row.id) {
+      row.id = 'candidate_' + Date.now() + '_' + index;
+    }
+    
     var candidate = {
-      id: row.id || 'candidate_' + Date.now() + '_' + index,
-      elementRef: row,
+      id: row.id,
+      // elementRef: row, // 移除DOM引用，避免内存泄漏
       name: '未知',
       school: '未知',
       major: '未知',
@@ -228,12 +238,17 @@ var MokaCandidateListModule = (function() {
   }
 
   function navigateToCandidatePagination(candidate) {
-    if (candidate.elementRef) {
-      MokaDOMUtils.clickElement(candidate.elementRef);
-      MokaLogger.info('点击候选人卡片进入详情页: ' + candidate.name);
-      return true;
+    // 优先通过ID查找元素（避免DOM引用）
+    if (candidate.id) {
+      var element = document.getElementById(candidate.id);
+      if (element) {
+        MokaDOMUtils.clickElement(element);
+        MokaLogger.info('通过ID点击候选人卡片进入详情页: ' + candidate.name);
+        return true;
+      }
     }
     
+    // 备用方案：通过姓名查找
     var containers = MokaDOMUtils.querySelectorAll('candidateList.pagination');
     
     for (var i = 0; i < containers.length; i++) {
@@ -251,12 +266,17 @@ var MokaCandidateListModule = (function() {
   }
 
   function navigateToCandidateInfiniteScroll(candidate) {
-    if (candidate.elementRef) {
-      MokaDOMUtils.clickElement(candidate.elementRef);
-      MokaLogger.info('点击候选人行进入详情页: ' + candidate.name);
-      return true;
+    // 优先通过ID查找元素（避免DOM引用）
+    if (candidate.id) {
+      var trElement = document.getElementById(candidate.id);
+      if (trElement) {
+        MokaDOMUtils.clickElement(trElement);
+        MokaLogger.info('通过ID点击候选人行进入详情页: ' + candidate.name);
+        return true;
+      }
     }
     
+    // 备用方案：通过姓名查找
     var items = MokaDOMUtils.querySelectorAll('candidateList.infiniteScroll');
     
     for (var i = 0; i < items.length; i++) {

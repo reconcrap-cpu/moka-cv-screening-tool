@@ -1,3 +1,6 @@
+// 内存优化常量
+const MAX_PROCESSED_IDS = 1000; // 最多保留1000个已处理的候选人ID
+
 let config = null;
 let isRunning = false;
 let isPaused = false;
@@ -206,6 +209,15 @@ async function mainScreeningFlowPagination() {
       allCandidatesMap[candidate.id] = candidate;
     });
     
+    // 内存优化：清理allCandidatesMap中旧的数据
+    const mapKeys = Object.keys(allCandidatesMap);
+    if (mapKeys.length > 200) {
+      // 只保留最新的200个候选人
+      const keysToRemove = mapKeys.slice(0, mapKeys.length - 200);
+      keysToRemove.forEach(key => delete allCandidatesMap[key]);
+      console.log(`Memory optimization: Cleaned allCandidatesMap, removed ${keysToRemove.length} old entries, current size: ${Object.keys(allCandidatesMap).length}`);
+    }
+    
     const remainingCount = targetCount - totalScreenedCount;
     const candidatesToProcess = candidates.slice(0, remainingCount);
     
@@ -279,6 +291,12 @@ async function mainScreeningFlowPagination() {
     }
     
     totalScreenedCount += candidatesToProcess.length;
+    
+    // 内存优化：分页模式下，翻页前清理processedCandidateIds
+    if (pageType === 'pagination') {
+      processedCandidateIds.clear();
+      console.log('Memory optimization: Cleared processedCandidateIds before page change');
+    }
     
     if (totalScreenedCount >= targetCount) {
       addLog('已达到目标筛选数量', 'success');
@@ -379,6 +397,15 @@ async function mainScreeningFlowInfiniteScroll() {
           });
         }
         processedCandidateIds.add(matchedCandidate.id);
+        
+        // 内存优化：定期清理processedCandidateIds
+        if (processedCandidateIds.size > MAX_PROCESSED_IDS) {
+          // 清理最早的一半
+          const idsArray = Array.from(processedCandidateIds);
+          const toRemove = idsArray.slice(0, Math.floor(idsArray.length / 2));
+          toRemove.forEach(id => processedCandidateIds.delete(id));
+          console.log(`Memory optimization: Cleaned processedCandidateIds, removed ${toRemove.length} old IDs, current size: ${processedCandidateIds.size}`);
+        }
       }
       
       // 更新当前批次处理到的位置
@@ -480,9 +507,14 @@ function extractCandidateInfoPagination() {
   }
   
   candidateContainers.forEach((container, index) => {
+    // 为容器添加唯一ID（如果没有）
+    if (!container.id) {
+      container.id = `candidate_${Date.now()}_${index}`;
+    }
+    
     const candidate = {
-      id: container.id || `candidate_${Date.now()}_${index}`,
-      elementRef: container,
+      id: container.id,
+      // elementRef: container, // 移除DOM引用，避免内存泄漏
       name: '未知',
       school: '未知',
       major: '未知',
@@ -557,9 +589,14 @@ function extractCandidateInfoInfiniteScroll() {
   const items = document.querySelectorAll('tr[id]');
   
   items.forEach((item, index) => {
+    // 为行添加唯一ID（如果没有）
+    if (!item.id) {
+      item.id = `candidate_${Date.now()}_${index}`;
+    }
+    
     const candidate = {
-      id: item.id || `candidate_${Date.now()}_${index}`,
-      elementRef: item,
+      id: item.id,
+      // elementRef: item, // 移除DOM引用，避免内存泄漏
       name: '未知',
       school: '未知',
       major: '未知',
@@ -1406,11 +1443,16 @@ function navigateToCandidateDetail(candidate) {
 }
 
 function navigateToCandidateDetailPagination(candidate) {
-  if (candidate.elementRef) {
-    candidate.elementRef.click();
-    return true;
+  // 优先通过ID查找元素（避免DOM引用）
+  if (candidate.id) {
+    const element = document.getElementById(candidate.id);
+    if (element) {
+      element.click();
+      return true;
+    }
   }
   
+  // 备用方案：通过姓名查找
   const containers = document.querySelectorAll('.content-OKNZCZyG5d');
   
   for (const container of containers) {
@@ -1425,16 +1467,21 @@ function navigateToCandidateDetailPagination(candidate) {
 }
 
 function navigateToCandidateDetailInfiniteScroll(candidate) {
-  if (candidate.elementRef) {
-    const itemElement = candidate.elementRef.querySelector('.item-NpfQ8Ve_W4');
-    if (itemElement) {
-      itemElement.click();
+  // 优先通过ID查找元素（避免DOM引用）
+  if (candidate.id) {
+    const trElement = document.getElementById(candidate.id);
+    if (trElement) {
+      const itemElement = trElement.querySelector('.item-NpfQ8Ve_W4');
+      if (itemElement) {
+        itemElement.click();
+        return true;
+      }
+      trElement.click();
       return true;
     }
-    candidate.elementRef.click();
-    return true;
   }
   
+  // 备用方案：通过姓名查找
   const items = document.querySelectorAll('.item-NpfQ8Ve_W4');
   
   for (const item of items) {

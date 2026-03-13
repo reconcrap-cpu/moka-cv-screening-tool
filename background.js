@@ -1,3 +1,7 @@
+// 内存优化常量
+const MAX_RESULTS_IN_MEMORY = 50; // 内存中最多保留50个结果
+const MAX_LOGS_IN_MEMORY = 200; // 内存中最多保留200条日志
+
 let screeningStatesByTab = {};
 let injectedTabs = new Set();
 
@@ -73,11 +77,15 @@ function addLog(tabId, message, type = 'info') {
   const logEntry = { timestamp, message, type };
   state.logs.push(logEntry);
   
-  if (state.logs.length > 500) {
-    state.logs = state.logs.slice(-500);
+  // 内存优化：限制内存中的日志数量
+  if (state.logs.length > MAX_LOGS_IN_MEMORY) {
+    state.logs = state.logs.slice(-MAX_LOGS_IN_MEMORY);
   }
   
-  saveState();
+  // 减少saveState调用频率，只在重要日志时保存
+  if (type === 'error' || type === 'warning' || type === 'success') {
+    saveState();
+  }
   
   chrome.runtime.sendMessage({
     action: 'logUpdate',
@@ -191,7 +199,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
         }
         state.results.push(request.result);
-        console.log('Results for tab', tabId, 'now:', state.results);
+        
+        // 内存优化：限制内存中的results数量
+        if (state.results.length > MAX_RESULTS_IN_MEMORY) {
+          // 将超出部分保存到storage
+          const overflowResults = state.results.slice(0, -MAX_RESULTS_IN_MEMORY);
+          saveOverflowResults(tabId, overflowResults);
+          // 只保留最新的MAX_RESULTS_IN_MEMORY个结果
+          state.results = state.results.slice(-MAX_RESULTS_IN_MEMORY);
+          console.log(`Memory optimization: Trimmed results to ${MAX_RESULTS_IN_MEMORY}, saved ${overflowResults.length} to storage`);
+        }
+        
+        console.log('Results for tab', tabId, 'now:', state.results.length, 'in memory');
         saveState();
         sendResponse({ success: true });
       }
@@ -214,10 +233,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('All screeningStatesByTab:', screeningStatesByTab);
         console.log('Keys in states:', Object.keys(screeningStatesByTab));
         const state = getStateForTab(tabId);
+        
+        // 内存优化：加载所有结果（包括溢出的部分）
+        const allResults = await loadAllResults(tabId, state);
+        
         console.log('State for tab', tabId, ':', state);
-        console.log('State results:', state ? state.results : 'null');
+        console.log('Total results:', allResults.length, '(in memory:', state.results.length, ')');
         console.log('================');
-        sendResponse({ results: state ? state.results : [] });
+        sendResponse({ results: allResults });
       }
       break;
       
@@ -413,8 +436,72 @@ function screeningComplete(tabId) {
   });
 }
 
+// 内存优化：保存溢出的结果到storage
+async function saveOverflowResults(tabId, results) {
+  const tabIdStr = String(tabId);
+  const storageKey = `overflow_results_${tabIdStr}`;
+  
+  try {
+    // 获取已保存的溢出结果
+    const existing = await chrome.storage.local.get(storageKey);
+    const existingResults = existing[storageKey] || [];
+    
+    // 合并新的溢出结果
+    const allOverflowResults = [...existingResults, ...results];
+    
+    // 保存到storage
+    await chrome.storage.local.set({
+      [storageKey]: allOverflowResults
+    });
+    
+    console.log(`Saved ${results.length} overflow results to storage, total overflow: ${allOverflowResults.length}`);
+  } catch (error) {
+    console.error('Failed to save overflow results:', error);
+  }
+}
+
+// 内存优化：加载所有结果（包括溢出的部分）
+async function loadAllResults(tabId, state) {
+  const tabIdStr = String(tabId);
+  const storageKey = `overflow_results_${tabIdStr}`;
+  
+  try {
+    // 获取溢出的结果
+    const existing = await chrome.storage.local.get(storageKey);
+    const overflowResults = existing[storageKey] || [];
+    
+    // 合并内存中的结果和溢出的结果
+    const allResults = [...overflowResults, ...(state.results || [])];
+    
+    console.log(`Loaded all results: ${overflowResults.length} from storage + ${state.results.length} from memory = ${allResults.length} total`);
+    
+    return allResults;
+  } catch (error) {
+    console.error('Failed to load overflow results:', error);
+    // 如果加载失败，返回内存中的结果
+    return state.results || [];
+  }
+}
+
+// 内存优化：清理溢出结果
+async function clearOverflowResults(tabId) {
+  const tabIdStr = String(tabId);
+  const storageKey = `overflow_results_${tabIdStr}`;
+  
+  try {
+    await chrome.storage.local.remove(storageKey);
+    console.log(`Cleared overflow results for tab ${tabIdStr}`);
+  } catch (error) {
+    console.error('Failed to clear overflow results:', error);
+  }
+}
+
 function clearState(tabId) {
   const tabIdStr = String(tabId);
+  
+  // 清理溢出结果
+  clearOverflowResults(tabId);
+  
   screeningStatesByTab[tabIdStr] = {
     isRunning: false,
     isPaused: false,
